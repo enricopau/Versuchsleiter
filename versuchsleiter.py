@@ -55,31 +55,31 @@ class LaunchRequesthandler(AbstractRequestHandler):
 		attrs = handler_input.attributes_manager.session_attributes
 		skill_state = attrs["skill_state"]
 		name = attrs["name"]
-		if aufgaben_adapter.get_attributes(handler_input.request_envelope):
-			aufgaben_index = aufgaben_adapter.get_attributes(handler_input.request_envelope)
-		else:
-			aufgaben_index = "0"
-		if fragen_adapter.get_attributes(handler_input.request_envelope):
-			fragen_index = fragen_adapter.get_attributes(handler_input.request_envelope)
-		else:
-			fragen_index = "0"
+		aufgaben_index = aufgaben_adapter.get_attributes(handler_input.request_envelope)
+		fragen_index = fragen_adapter.get_attributes(handler_input.request_envelope)
 
 		if skill_state == "started":
 			speech = msg_data.versuchsleiter_first_time_msg.format(name)
-			aufgaben_adapter.save_attributes(handler_input.request_envelope, updateIndex(aufgaben_index))
+			if aufgaben_index == "0":
+				aufgaben_adapter.save_attributes(handler_input.request_envelope, "1")
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "aufgaben":
 			speech = msg_data.aufgaben_started_msg
 			status_adapter.save_attributes(handler_input.request_envelope, "aufgaben_in_progress")
+			if aufgaben_index == "0":
+				aufgaben_adapter.save_attributes(handler_input.request_envelope, "1")
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "aufgaben_in_progress":
 			speech = msg_data.aufgaben_in_progress_msg.format(name)
+			aufgaben_adapter.save_attributes(handler_input.request_envelope, "1")
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "fragen":
 			speech = msg_data.fragen_started_msg
+			question = msg_data.fragen_started_question
 			status_adapter.save_attributes(handler_input.request_envelope, "befragung_in_progress")
-			fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
-			handler_input.response_builder.speak(speech).ask(speech)
+			if fragen_index == "0":
+				fragen_adapter.save_attributes(handler_input.request_envelope, "1")
+			handler_input.response_builder.speak(speech).ask(question)
 		elif skill_state == "befragung_in_progress":
 			speech = msg_data.befragung_in_progress_msg.format(name)
 			handler_input.response_builder.speak(speech).ask(speech)
@@ -105,16 +105,8 @@ class AufgabenStartenIntentHandler(AbstractRequestHandler):
 	def handle(self, handler_input):
 		#attrs = handler_input.attributes_manager.session_attributes
 		#name = attrs["name"]
-		
-		if aufgaben_adapter.get_attributes(handler_input.request_envelope):
-			index = aufgaben_adapter.get_attributes(handler_input.request_envelope)
-		else:
-			index = "0"
-			logger.info("Aufgabenindex konnte nicht ermittelt werden.")
-		speech = whichTask(index, handler_input)
-		handler_input.response_builder.speak(speech).ask(speech)
-		index = updateIndex(index)
-		aufgaben_adapter.save_attributes(handler_input.request_envelope, index)
+		speech = getTaskSpeech(handler_input)
+		handler_input.response_builder.speak(speech)
 		return handler_input.response_builder.response
 
 #Wird aufgerufen, wenn die Befragung gestartet oder aufgenommen wird.
@@ -127,28 +119,18 @@ class BefragungStartenIntentHandler(AbstractRequestHandler):
 		else:
 			return is_intent_name("BefragungStartenIntent")(handler_input)
 	def handle(self, handler_input):
-		if fragen_adapter.get_attributes(handler_input.request_envelope):
-			index = fragen_adapter.get_attributes(handler_input.request_envelope)
-		else:
-			index = "0"
-			logger.info("Fragenindex konnte nicht ermittelt werden.")
-		speech = whichQuestion(index, handler_input)
-		question = ' '
-		handler_input.response_builder.speak(speech).ask(question)
-		index = updateIndex(index)
-		fragen_adapter.save_attributes(handler_input.request_envelope, index)
+		speech = getQuestionSpeech(handler_input)
+		handler_input.response_builder.speak(speech).set_should_end_session(False)
 		return handler_input.response_builder.response
 
 #Hier war mal ein selbstgeschriebener WiederholenIntentHandler, aber der Built-In Intent funktioniert besser und ohne Komplikation
+
 #Wird aufgerufen, wenn der Nutzer dem Skill mitteilt, dass er fertig ist. Der Handler gibt die nächste Anweisung aus.
 class IchBinFertigIntentHandler(AbstractRequestHandler):
 	def can_handle(self, handler_input):
 		return is_intent_name("IchBinFertigIntent")(handler_input)
 	def handle(self, handler_input):
-		attrs = handler_input.attributes_manager.session_attributes
-		index = attrs["aufgaben_index"]
-		speech = whichTask(index, handler_input)
-		aufgaben_adapter.save_attributes(handler_input.request_envelope, updateIndex(index))
+		speech = getTaskSpeech(handler_input)
 		handler_input.response_builder.speak(speech)
 		return handler_input.response_builder.response
 
@@ -166,22 +148,13 @@ class HelpIntentHandler(AbstractRequestHandler):
 class AntwortGegebenIntentHandler(AbstractRequestHandler):
 	def can_handle(self, handler_input):
 		attrs = handler_input.attributes_manager.session_attributes
-		if attrs["skill_state"] == "befragung_in_progress":
-			return is_intent_name("AntwortGegebenIntentHandler")(handler_input)
+		if attrs["skill_state"] == "befragung_in_progress" or ["skill_state"] == "fragen":
+			return is_intent_name("AntwortGegebenIntent")(handler_input)
 		else:
 			return False
 	def handle(self, handler_input):
-		attrs = handler_input.attributes_manager.session_attributes
-		is_finished = attrs["is_finished"]
-		if is_finished == False:
-			index = fragen_adapter.get_attributes(handler_input.request_envelope)
-			speech = whichQuestion(index, handler_input)
-			handler_input.response_builder.speak(speech).ask(speech)
-			index = updateIndex(index)
-			fragen_adapter.save_attributes(handler_input.request_envelope, index)
-		elif is_finished == True:
-			speech = msg_data.questions_finished_msg
-			handler_input.response_builder.speak(speech).set_should_end_session(True)
+		speech = getQuestionSpeech(handler_input)
+		handler_input.response_builder.speak(speech).set_should_end_session(False)
 		return handler_input.response_builder.response
 
 #Wird aufgerufen, wenn der Nutzer die Datenbanken zurücksetzen will.
@@ -216,7 +189,7 @@ class CatchExceptionsHandler(AbstractExceptionHandler):
 #Wird aufgerufen, wenn der Nutzer Nein sagt. Soll unterscheiden, ob er dabei eine Frage beantwortet oder in der Anwendug navigiert.
 class NoIntentHandler(AbstractRequestHandler):
 	def can_handle(self, handler_input):
-		if is_intent_name("AMAZON.NoIntent")(handler_input) and is_no_intent == True:
+		if is_intent_name("AMAZON.NoIntent")(handler_input) and is_no_intent == True:				#is_no_intent Implementation with real question implementation
 			return True
 		else:
 			return False
@@ -253,16 +226,34 @@ class SessionEndedRequestHandler(AbstractRequestHandler):
 		logger.info("Session wurde mit folgendem Grund beendet: {}".format(handler_input.request_envelope.request.reason))
 		return handler_input.response_builder.response
 
+#Wird aufgerufen, wenn Alexa einen Intent erkennt, dieser aber nicht von diesem Programm abgehandelt werden kann.
+class FallbackIntentHandler(AbstractRequestHandler):
+	def can_handle(self, handler_input):
+		return is_intent_name("AMAZON.FallbackIntent")(handler_input)
+	def handle(self, handler_input):
+		speech = msg_data.fallback_msg
+		handler_input.response_builder.speak(speech)
+		return handler_input.response_builder.response
+
+#Funktion, die die richtige Frage ermittelt.
+#Funktion, die einen Index um eins erhöht.
+def updateIndex(index):
+	index = int(index)
+	index += 1
+	index = str(index)
+	return index
 #Funktion die die Anweisungen für die richtige Aufgabe wiedergibt.
-def whichTask(index, handler_input):
-	attrs = handler_input.attributes_manager.session_attributes
-	intIndex = int(index)
+def getTaskSpeech(handler_input):
+	#attrs = handler_input.attributes_manager.session_attributes
+	aufgaben_index = aufgaben_adapter.get_attributes(handler_input.request_envelope)
+	intIndex = int(aufgaben_index)
 	if intIndex == 1:
 		speech = msg_data.first_task_msg
-		attrs["aktuelle_aufgabe"] = str(intIndex)
+		status_adapter.save_attributes(handler_input.request_envelope, "aufgaben_in_progress")
+		aufgaben_adapter.save_attributes(handler_input.request_envelope, updateIndex(aufgaben_index))
 	elif intIndex == 2:
 		speech = msg_data.second_task_msg
-		attrs["aktuelle_aufgabe"] = str(intIndex)
+		aufgaben_adapter.save_attributes(handler_input.request_envelope, updateIndex(aufgaben_index))
 	elif intIndex > 2:
 		speech = msg_data.tasks_finished_msg
 		status_adapter.save_attributes(handler_input.request_envelope, "fragen")
@@ -270,44 +261,41 @@ def whichTask(index, handler_input):
 		speech = msg_data.error_tasks_msg
 		logger.info("Ein Fehler ist aufgetreten. Die richtige Aufgabe konnte nicht ermittelt werden.")
 	return speech
-#Funktion, die die richtige Frage ermittelt.
-def whichQuestion(index, handler_input):
-	attrs = handler_input.attributes_manager.session_attributes
-	intIndex = int(index)
+
+def getQuestionSpeech(handler_input):
+	fragen_index = fragen_adapter.get_attributes(handler_input.request_envelope)
+	intIndex = int(fragen_index)
 	if intIndex == 1:
 		speech = msg_data.first_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		status_adapter.save_attributes(handler_input.request_envelope, "befragung_in_progress")
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 2:
 		speech = msg_data.second_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 3:
 		speech = msg_data.third_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 4:
 		speech = msg_data.fourth_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 5:
 		speech = msg_data.fifth_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 6:
 		speech = msg_data.sixth_question
-		attrs["aktuelle_frage"] = str(intIndex)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 7:
 		speech = msg_data.seventh_question
-		attrs["aktuelle_frage"] = str(intIndex)
-	elif intIndex > 7:
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
+	elif intIndex >= 8:
 		speech = msg_data.questions_finished_msg
 		status_adapter.save_attributes(handler_input.request_envelope, "beendet")
-		attrs["is_finished"] = True
 	else:
 		speech = msg_data.error_questions_msg
 	return speech
-#Funktion, die einen Index um eins erhöht.
-def updateIndex(index):
-	index = int(index)
-	index += 1
-	index = str(index)
-	return index
+
+
+
 
 #Adds the Handlers
 sb.add_global_request_interceptor(LaunchRequestInterceptor())
@@ -322,6 +310,6 @@ sb.add_exception_handler(CatchExceptionsHandler())
 sb.add_request_handler(NoIntentHandler())
 sb.add_request_handler(StopOrCancelIntentHandler())
 sb.add_request_handler(SessionEndedRequestHandler())
-
+sb.add_request_handler(FallbackIntentHandler())
 #Lamda Handler Methode
 lambda_handler = sb.lambda_handler()
