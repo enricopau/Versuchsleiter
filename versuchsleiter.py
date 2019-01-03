@@ -75,7 +75,7 @@ class LaunchRequesthandler(AbstractRequestHandler):
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "fragen":
 			speech = msg_data.fragen_started_msg
-			question = msg_data.fragen_started_question
+			question = msg_data.fragen_starten_question
 			status_adapter.save_attributes(handler_input.request_envelope, "befragung_in_progress")
 			if fragen_index == "0":
 				fragen_adapter.save_attributes(handler_input.request_envelope, "1")
@@ -131,7 +131,7 @@ class IchBinFertigIntentHandler(AbstractRequestHandler):
 		return is_intent_name("IchBinFertigIntent")(handler_input)
 	def handle(self, handler_input):
 		speech = getTaskSpeech(handler_input)
-		handler_input.response_builder.speak(speech)
+		handler_input.response_builder.speak(speech).set_should_end_session(False)
 		return handler_input.response_builder.response
 
 #Wird aufgerufen, wenn der Nutze nach Hilfe fragt.
@@ -257,6 +257,7 @@ def getTaskSpeech(handler_input):
 	elif intIndex > 2:
 		speech = msg_data.tasks_finished_msg
 		status_adapter.save_attributes(handler_input.request_envelope, "fragen")
+		fragen_adapter.save_attributes(handler_input.request_envelope, "1")
 	else:
 		speech = msg_data.error_tasks_msg
 		logger.info("Ein Fehler ist aufgetreten. Die richtige Aufgabe konnte nicht ermittelt werden.")
