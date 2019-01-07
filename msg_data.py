@@ -3,10 +3,6 @@ error_msg = "Entschuldigung, es ist ein Fehler unterlaufen. Bitte versuche es no
 error_question = "Bitte versuche es erneut oder wende dich an den menschlichen Versuchsleiter, solltest du nicht weiter kommen."
 no_table_error_msg = "Entschuldigung, es ist Fehler beim Abruf der Datenbank unterlaufen. Bitter versuche es noch einmal."
 
-#help_msg = "Hast du Probleme damit, die Aufgabe zu verstehen?"
-#help_question_msg = "Solltest du Probleme haben, die Aufgabe zu verstehen, sage Ja und ich versuche sie dir noch einmal zu erklären."
-cant_help_you_msg = "Dann kann ich dir leider nicht weiterhelfen. Versuche es einfach erneut. Solltest du trotzdem nicht weiter kommen, wende dich bitte an den Versuchsleiter."
-
 goodbye_msg = "Auf Wiedersehen."
 cancel_msg = "Okay, wie kann ich dir weiterhelfen?"
 cancel_question_msg = "Um meine Anwendung zu schließen sage beenden, um Hilfe zu bekommen sage, dass du Hilfe brauchst."
