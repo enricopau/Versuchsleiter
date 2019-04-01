@@ -57,6 +57,8 @@ class LaunchRequesthandler(AbstractRequestHandler):
 		name = attrs["name"]
 		aufgaben_index = aufgaben_adapter.get_attributes(handler_input.request_envelope)
 		fragen_index = fragen_adapter.get_attributes(handler_input.request_envelope)
+		intIndex = int(fragen_index)
+		noch_fragen = str(10 - intIndex) 
 
 		if skill_state == "started":
 			speech = msg_data.versuchsleiter_first_time_msg.format(name)
@@ -65,24 +67,25 @@ class LaunchRequesthandler(AbstractRequestHandler):
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "aufgaben":
 			speech = msg_data.aufgaben_started_msg
+			question = msg_data.what_can_i_do_msg
 			status_adapter.save_attributes(handler_input.request_envelope, "aufgaben_in_progress")
 			if aufgaben_index == "0":
 				aufgaben_adapter.save_attributes(handler_input.request_envelope, "1")
-			handler_input.response_builder.speak(speech).ask(speech)
+			handler_input.response_builder.speak(speech).ask(question)
 		elif skill_state == "aufgaben_in_progress":
 			speech = msg_data.aufgaben_in_progress_msg.format(name)
-			aufgaben_adapter.save_attributes(handler_input.request_envelope, "1")
 			handler_input.response_builder.speak(speech).ask(speech)
 		elif skill_state == "fragen":
 			speech = msg_data.fragen_started_msg
-			question = msg_data.fragen_starten_question
+			question = msg_data.what_can_i_do_msg
 			status_adapter.save_attributes(handler_input.request_envelope, "befragung_in_progress")
 			if fragen_index == "0":
 				fragen_adapter.save_attributes(handler_input.request_envelope, "1")
 			handler_input.response_builder.speak(speech).ask(question)
 		elif skill_state == "befragung_in_progress":
-			speech = msg_data.befragung_in_progress_msg.format(name)
-			handler_input.response_builder.speak(speech).ask(speech)
+			speech = msg_data.befragung_in_progress_msg.format(name, noch_fragen)
+			question = msg_data.what_can_i_do_msg
+			handler_input.response_builder.speak(speech).ask(question)
 		elif skill_state == "beendet":
 			speech = msg_data.questions_finished_msg
 			handler_input.response_builder.speak(speech).set_should_end_session(True)
@@ -93,7 +96,7 @@ class LaunchRequesthandler(AbstractRequestHandler):
 
 		return handler_input.response_builder.response
 
-#Wird aufgerufen wenn die Aufgaben gestartet oder fortgesetzt werden. 
+#Wird aufgerufen wenn die Aufgaben gestartet oder fortgesetzt werden.
 class AufgabenStartenIntentHandler(AbstractRequestHandler):
 	def can_handle(self, handler_input):
 		attrs = handler_input.attributes_manager.session_attributes
@@ -153,6 +156,8 @@ class AntwortGegebenIntentHandler(AbstractRequestHandler):
 		else:
 			return False
 	def handle(self, handler_input):
+		fragen_index = fragen_adapter.get_attributes(handler_input.request_envelope)
+		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 		speech = getQuestionSpeech(handler_input)
 		handler_input.response_builder.speak(speech).set_should_end_session(False)
 		return handler_input.response_builder.response
@@ -257,7 +262,8 @@ def getTaskSpeech(handler_input):
 	elif intIndex > 2:
 		speech = msg_data.tasks_finished_msg
 		status_adapter.save_attributes(handler_input.request_envelope, "fragen")
-		fragen_adapter.save_attributes(handler_input.request_envelope, "1")
+		if fragen_adapter.get_attributes(handler_input.request_envelope) == "0":
+			fragen_adapter.save_attributes(handler_input.request_envelope, "1")
 	else:
 		speech = msg_data.error_tasks_msg
 		logger.info("Ein Fehler ist aufgetreten. Die richtige Aufgabe konnte nicht ermittelt werden.")
@@ -269,26 +275,25 @@ def getQuestionSpeech(handler_input):
 	if intIndex == 1:
 		speech = msg_data.first_question
 		status_adapter.save_attributes(handler_input.request_envelope, "befragung_in_progress")
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 2:
 		speech = msg_data.second_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 3:
 		speech = msg_data.third_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 4:
 		speech = msg_data.fourth_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 5:
 		speech = msg_data.fifth_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 6:
 		speech = msg_data.sixth_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
 	elif intIndex == 7:
 		speech = msg_data.seventh_question
-		fragen_adapter.save_attributes(handler_input.request_envelope, updateIndex(fragen_index))
-	elif intIndex >= 8:
+	elif intIndex == 8:
+		speech = msg_data.eight_question
+	elif intIndex == 9:
+		speech = msg_data.nineth_question
+	elif intIndex == 10:
+		speech = msg_data.tenth_question
+	elif intIndex >= 11:
 		speech = msg_data.questions_finished_msg
 		status_adapter.save_attributes(handler_input.request_envelope, "beendet")
 	else:

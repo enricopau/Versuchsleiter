@@ -24,7 +24,7 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
 	def handle(self, handler_input):
 		speech = "Willkommen. Ich führe dich heute durch die Studie. Bitte gib mir deinen Namen, damit wir weitermachen können."
-		question = "Bitte sage etwas wie mein Name ist XY."
+		question = "Bitte sage etwas wie mein Name ist Max Mustermann."
 		handler_input.response_builder.speak(speech).ask(question)
 		return handler_input.response_builder.response
 
@@ -95,7 +95,7 @@ class MeinNameIstIntentHandler(AbstractRequestHandler):
 				handler_input.response_builder.speak(speech).ask(speech)
 			else:
 				adapter.save_attributes(handler_input.request_envelope, user_name)
-				speech = "Schön dich kennenzulernen, {}. Hier folgt nun die Einweisung und die Aufklärung.".format(user_name)
+				speech = "Schön dich kennenzulernen, {}. In dieser Studie werde ich dich beten, verschiedene, simple Aufgaben zu lösen. Danach werde ich dich beten ein paar Fragen zu beantworten. Deine Teilnahme an dieser Studie ist freiwillig und kann jederzeit ohne die Angabe von Gründen und ohne, dass dir irgendein Nachteil entsteht, beendet werden. Alle erhobenen Daten werden vertraulich behandelt und nicht an Dritte weitergegeben. Wenn du einverstanden und bereit bist loszulegen, starte bitte den Assistenten. ".format(user_name)
 				handler_input.response_builder.speak(speech)
 		else:
 			speech = "Leider kenne ich diesen Namen nicht. Bitte versuche es noch einmal."
@@ -109,7 +109,7 @@ class YesIntentHandler(AbstractRequestHandler):
 	def can_handle(self, handler_input):
 		return is_intent_name("AMAZON.YesIntent")(handler_input)
 	def handle(self, handler_input):
-		speech = "Hier folgt nun die Einweisung und die Aufklärung zur Studie."
+		speech = "Willkommen zurück. In dieser Studie werde ich dich beten, verschiedene, simple Aufgaben zu lösen. Danach werde ich dich beten ein paar Fragen zu beantworten. Deine Teilnahme an dieser Studie ist freiwillig und kann jederzeit ohne die Angabe von Gründen und ohne, dass dir irgendein Nachteil entsteht, beendet werden. Alle erhobenen Daten werden vertraulich behandelt und nicht an Dritte weitergegeben. Wenn du einverstanden und bereit bist loszulegen, starte bitte den Assistenten."
 		handler_input.response_builder.speak(speech)
 		return handler_input.response_builder.response
 
